@@ -41,7 +41,6 @@
       margin: 12px 0;
     }
 
-    /* --- Form controls --- */
     input[type="text"], input[type="number"], select, textarea{
       width:100%;
       padding:10px 12px;
@@ -83,22 +82,9 @@
       color:#444;
     }
 
-    /* --- Responsive layout helpers --- */
     .grid-2{
       display:grid;
       grid-template-columns: 1fr 1fr;
-      gap: var(--gap);
-      align-items:start;
-    }
-    .grid-3{
-      display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: var(--gap);
-      align-items:start;
-    }
-    .grid-4{
-      display:grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr;
       gap: var(--gap);
       align-items:start;
     }
@@ -111,7 +97,6 @@
       margin: 0 0 6px;
     }
 
-    /* --- Summary pills --- */
     .resultGrid{
       display:grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -127,7 +112,6 @@
     .pill .label{ color:var(--muted); font-size:12px; margin-bottom:4px; }
     .pill .value{ font-size: 22px; font-weight: 900; word-break: break-word; }
 
-    /* --- Device section (desktop: row, mobile: stacked cards) --- */
     .deviceHeader{
       display:grid;
       grid-template-columns: 1.1fr 1fr 1fr 1fr 0.9fr;
@@ -160,7 +144,7 @@
     .warn{ color: var(--danger); font-weight:900; }
     .ok{ color: var(--ok); font-weight:900; }
 
-    /* --- Records list --- */
+    /* Records list */
     .recordsHeader{
       display:grid;
       grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr 0.8fr;
@@ -179,22 +163,37 @@
       border-top: 1px solid #eee;
     }
     .right{ text-align:right; }
-
     .tiny{ font-size:12px; color: var(--muted); margin-top:10px; }
 
-    /* --- Mobile overrides --- */
+    /* Summary table (sorted) */
+    .sumHeader{
+      display:grid;
+      grid-template-columns: 2fr 1fr 1fr 0.8fr;
+      gap: 10px;
+      align-items:center;
+      font-weight:900;
+      color:#333;
+      padding-bottom: 10px;
+    }
+    .sumRow{
+      display:grid;
+      grid-template-columns: 2fr 1fr 1fr 0.8fr;
+      gap: 10px;
+      align-items:center;
+      padding: 10px 0;
+      border-top: 1px solid #eee;
+    }
+
     @media (max-width: 720px){
       body{ padding: 14px; }
 
-      .grid-2, .grid-3, .grid-4{
+      .grid-2{
         grid-template-columns: 1fr;
       }
-
       .resultGrid{
         grid-template-columns: 1fr;
       }
 
-      /* Device table -> stacked cards */
       .deviceHeader{ display:none; }
       .deviceRow{
         grid-template-columns: 1fr;
@@ -211,10 +210,7 @@
         grid-template-columns: 1fr 1fr;
         gap: 10px;
       }
-      .deviceRow .pair .field label{ margin-bottom: 6px; }
-      .deviceRow .pair.single{ grid-template-columns: 1fr; }
 
-      /* Records -> stacked cards */
       .recordsHeader{ display:none; }
       .recordRow{
         grid-template-columns: 1fr;
@@ -224,13 +220,16 @@
         background:#fff;
         margin-top: 10px;
       }
-      .recordRow .row2{
-        display:grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
+
+      .sumHeader{ display:none; }
+      .sumRow{
+        grid-template-columns: 1fr;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px;
+        background:#fff;
+        margin-top: 10px;
       }
-      .recordRow .row2 > div{ min-width:0; }
-      .recordRow .row2 .right{ text-align:left; }
 
       .actions button{
         flex: 1 1 auto;
@@ -379,7 +378,7 @@
     <div class="grid-2">
       <div class="field">
         <label for="weaponName">武器名（記録時に入力）</label>
-        <input id="weaponName" type="text" placeholder="例：禁戒のデスヴァンケル" />
+        <input id="weaponName" type="text" placeholder="例：武器A" />
       </div>
       <div class="muted" style="align-self:end;">
         「記録する」でこの時点の <span class="badge">巨戟タイプ</span> / <span class="badge">リセット回数</span> / <span class="badge">総消費pts</span> を保存（ブラウザ内）
@@ -421,9 +420,37 @@
     </div>
   </div>
 
+  <!-- NEW: Summary table -->
+  <div class="card">
+    <h2>武器別リセット回数（昇順）</h2>
+    <div class="muted">
+      記録した履歴から、<b>武器名ごとに最大リセット回数</b>を抽出し、少ない順に並べて表示します。
+      （同じ武器名で複数回記録した場合、最大値を採用）
+    </div>
+
+    <div class="actions">
+      <button id="btnBuildSummary" type="button">表を更新</button>
+      <button id="btnCopySummaryTable" type="button">表をコピー</button>
+    </div>
+
+    <div id="summaryArea" style="margin-top:12px;">
+      <div class="sumHeader">
+        <div>武器名</div>
+        <div>巨戟タイプ</div>
+        <div class="right">リセット回数</div>
+        <div class="right">操作</div>
+      </div>
+      <div id="summaryList" class="muted">（まだ記録がありません）</div>
+    </div>
+
+    <div class="tiny">
+      例：武器A（3回） → 武器B（10回） → 武器C（23回）
+    </div>
+  </div>
+
 <script>
 (() => {
-  const STORAGE_KEY = "gigeki_artia_reset_records_v2";
+  const STORAGE_KEY = "gigeki_artia_reset_records_v3";
 
   const DEVICES = [
     { key: "attack", label: "攻撃" },
@@ -442,6 +469,8 @@
   const recordsListEl = document.getElementById("recordsList");
   const jsonPanelEl = document.getElementById("jsonPanel");
   const jsonTextEl = document.getElementById("jsonText");
+
+  const summaryListEl = document.getElementById("summaryList");
 
   const deviceRows = Array.from(document.querySelectorAll(".deviceRow.device"));
 
@@ -569,10 +598,10 @@
         if (i >= 0){
           rs[i].weaponName = nameInput.value;
           saveRecords(rs);
+          renderSummary(); // keep summary in sync
         }
       });
 
-      // Desktop cells
       const typeDiv = document.createElement("div");
       typeDiv.textContent = rec.weaponTypeLabel ?? "";
 
@@ -596,20 +625,10 @@
         const rs = loadRecords().filter(r => r.id !== rec.id);
         saveRecords(rs);
         renderRecords();
+        renderSummary();
       });
       actionsDiv.appendChild(delBtn);
 
-      // For mobile: group numeric fields in 2-col grid (optional)
-      const row2 = document.createElement("div");
-      row2.className = "row2";
-      row2.appendChild(typeDiv);
-      row2.appendChild(resetDiv);
-      const row2b = document.createElement("div");
-      row2b.className = "row2";
-      row2b.appendChild(ptsDiv);
-      row2b.appendChild(timeDiv);
-
-      // We keep DOM simple: on desktop, CSS grid will align; on mobile, it becomes stacked.
       row.appendChild(nameInput);
       row.appendChild(typeDiv);
       row.appendChild(resetDiv);
@@ -639,6 +658,96 @@
     records.unshift(rec);
     saveRecords(records);
     renderRecords();
+    renderSummary();
+  }
+
+  // ===== NEW: Summary (weapon name -> max resetCount) sorted ascending =====
+  function computeSummary(){
+    const records = loadRecords();
+
+    // Map weaponName -> {weaponName, maxResetCount, weaponTypeLabelAtMax}
+    const map = new Map();
+
+    for (const r of records){
+      const name = (r.weaponName || "").trim();
+      if (!name) continue; // ignore empty names in summary
+      const rc = Number.isFinite(Number(r.resetCount)) ? Number(r.resetCount) : 0;
+      const typeLabel = r.weaponTypeLabel || "";
+
+      const existing = map.get(name);
+      if (!existing || rc > existing.resetCount){
+        map.set(name, { weaponName: name, weaponTypeLabel: typeLabel, resetCount: rc });
+      }
+    }
+
+    // Turn into array and sort by resetCount asc, then name asc
+    const arr = Array.from(map.values());
+    arr.sort((a,b) => (a.resetCount - b.resetCount) || a.weaponName.localeCompare(b.weaponName, "ja"));
+
+    return arr;
+  }
+
+  function renderSummary(){
+    const summary = computeSummary();
+    if (!summary.length){
+      summaryListEl.textContent = "（まだ記録がありません / 武器名が空の記録は集計対象外です）";
+      return;
+    }
+
+    summaryListEl.innerHTML = "";
+    summary.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "sumRow";
+
+      const nameDiv = document.createElement("div");
+      nameDiv.textContent = item.weaponName;
+
+      const typeDiv = document.createElement("div");
+      typeDiv.textContent = item.weaponTypeLabel || "";
+
+      const resetDiv = document.createElement("div");
+      resetDiv.className = "right";
+      resetDiv.textContent = `${item.resetCount}回`;
+
+      const actionsDiv = document.createElement("div");
+      actionsDiv.className = "right";
+      const copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.textContent = "コピー";
+      copyBtn.addEventListener("click", async () => {
+        const txt = `${item.weaponName}（${item.resetCount}回）`;
+        try{
+          await navigator.clipboard.writeText(txt);
+          alert("コピーしました。");
+        }catch{
+          const ta = document.createElement("textarea");
+          ta.value = txt;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          alert("コピーしました（互換モード）。");
+        }
+      });
+      actionsDiv.appendChild(copyBtn);
+
+      row.appendChild(nameDiv);
+      row.appendChild(typeDiv);
+      row.appendChild(resetDiv);
+      row.appendChild(actionsDiv);
+
+      summaryListEl.appendChild(row);
+    });
+  }
+
+  function copyWholeSummaryLine(){
+    const summary = computeSummary();
+    if (!summary.length){
+      alert("集計できるデータがありません（武器名が空の記録は除外されます）。");
+      return;
+    }
+    const line = summary.map(x => `${x.weaponName}（${x.resetCount}回）`).join(" → ");
+    return line;
   }
 
   // Buttons
@@ -689,7 +798,7 @@
   document.getElementById("btnAddRecord").addEventListener("click", () => {
     const name = (weaponNameEl.value || "").trim();
     if (!name){
-      const ok = confirm("武器名が空です。このまま記録しますか？");
+      const ok = confirm("武器名が空です。このまま記録しますか？（集計表には出ません）");
       if (!ok) return;
     }
     addRecord();
@@ -700,6 +809,7 @@
     if (!ok) return;
     localStorage.removeItem(STORAGE_KEY);
     renderRecords();
+    renderSummary();
   });
 
   document.getElementById("btnExportJson").addEventListener("click", () => {
@@ -733,6 +843,7 @@
 
       saveRecords(cleaned);
       renderRecords();
+      renderSummary();
       alert("読み込みました。");
     }catch(e){
       alert("JSONの解析に失敗しました：\n" + (e && e.message ? e.message : String(e)));
@@ -741,6 +852,30 @@
 
   document.getElementById("btnCloseJson").addEventListener("click", () => {
     jsonPanelEl.style.display = "none";
+  });
+
+  // NEW summary buttons
+  document.getElementById("btnBuildSummary").addEventListener("click", () => {
+    renderSummary();
+    alert("表を更新しました。");
+  });
+
+  document.getElementById("btnCopySummaryTable").addEventListener("click", async () => {
+    const line = copyWholeSummaryLine();
+    if (!line) return;
+
+    try{
+      await navigator.clipboard.writeText(line);
+      alert("コピーしました。\n" + line);
+    }catch{
+      const ta = document.createElement("textarea");
+      ta.value = line;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      alert("コピーしました（互換モード）。\n" + line);
+    }
   });
 
   // Input listeners
@@ -754,6 +889,7 @@
   rebuildWeaponTypeOptions();
   renderCalc();
   renderRecords();
+  renderSummary();
 })();
 </script>
 </body>
