@@ -2,72 +2,239 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>巨戟アーティア リセット回数カウンター</title>
+
   <style>
-    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", sans-serif; }
-    body { margin: 18px; max-width: 980px; }
-    h1 { font-size: 20px; margin: 0 0 12px; }
-    .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; margin: 12px 0; }
-    .muted { color: #666; font-size: 13px; line-height: 1.45; }
-    .row { display: grid; grid-template-columns: 1.2fr 0.8fr 0.8fr 0.8fr 0.8fr; gap: 10px; align-items: center; }
-    .row.header { font-weight: 700; color: #333; }
-    .row + .row { margin-top: 8px; }
-    input[type="number"], input[type="text"], select, textarea {
-      width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px;
-      box-sizing: border-box;
+    :root{
+      --border:#ddd;
+      --muted:#666;
+      --bg:#fff;
+      --soft:#fafafa;
+      --danger:#b00020;
+      --ok:#0a7a2f;
+      --radius:12px;
+      --gap:12px;
+      --pad:14px;
     }
-    textarea { min-height: 90px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
-    .resultGrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    .pill {
-      border: 1px solid #ddd; border-radius: 10px; padding: 12px;
-      background: #fafafa;
+
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; }
+    body{
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color:#111;
+      padding: 16px;
+      max-width: 980px;
+      margin: 0 auto;
     }
-    .pill .label { color: #666; font-size: 12px; margin-bottom: 4px; }
-    .pill .value { font-size: 20px; font-weight: 800; }
-    .warn { color: #b00020; font-weight: 700; }
-    .ok { color: #0a7a2f; font-weight: 700; }
-    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    button {
-      padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc;
-      background: white; cursor: pointer; font-weight: 700;
+
+    h1{ font-size:20px; margin: 0 0 10px; }
+    h2{ font-size:16px; margin: 0 0 10px; }
+
+    .muted{ color:var(--muted); font-size:13px; line-height:1.55; }
+
+    .card{
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--pad);
+      margin: 12px 0;
     }
-    button:hover { background: #f5f5f5; }
-    .tiny { font-size: 12px; color: #666; }
-    .recordRow {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr 1fr 0.9fr;
+
+    /* --- Form controls --- */
+    input[type="text"], input[type="number"], select, textarea{
+      width:100%;
+      padding:10px 12px;
+      border:1px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px; /* iOS zoom対策 */
+      background:#fff;
+    }
+    input[readonly]{ background: #f7f7f7; }
+    textarea{
+      min-height: 110px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+    button{
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background:#fff;
+      font-weight:700;
+      cursor:pointer;
+    }
+    button:hover{ background:#f5f5f5; }
+
+    .badge{
+      display:inline-block;
+      padding:2px 8px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      font-size:12px;
+      background: var(--soft);
+      color:#444;
+    }
+
+    /* --- Responsive layout helpers --- */
+    .grid-2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--gap);
+      align-items:start;
+    }
+    .grid-3{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--gap);
+      align-items:start;
+    }
+    .grid-4{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: var(--gap);
+      align-items:start;
+    }
+
+    .field label{
+      display:block;
+      font-size: 13px;
+      color:#333;
+      font-weight:800;
+      margin: 0 0 6px;
+    }
+
+    /* --- Summary pills --- */
+    .resultGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--gap);
+    }
+    .pill{
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: var(--soft);
+      min-width: 0;
+    }
+    .pill .label{ color:var(--muted); font-size:12px; margin-bottom:4px; }
+    .pill .value{ font-size: 22px; font-weight: 900; word-break: break-word; }
+
+    /* --- Device section (desktop: row, mobile: stacked cards) --- */
+    .deviceHeader{
+      display:grid;
+      grid-template-columns: 1.1fr 1fr 1fr 1fr 0.9fr;
       gap: 10px;
-      align-items: center;
+      font-weight:900;
+      color:#333;
+      margin-bottom: 10px;
+    }
+
+    .deviceRow{
+      display:grid;
+      grid-template-columns: 1.1fr 1fr 1fr 1fr 0.9fr;
+      gap: 10px;
+      align-items:center;
+      margin-top: 10px;
+    }
+
+    .deviceRow .nameFixed{
+      font-weight:900;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background:#f7f7f7;
+      text-align:center;
+    }
+
+    .statusBox{
+      margin-top: 12px;
+    }
+    .warn{ color: var(--danger); font-weight:900; }
+    .ok{ color: var(--ok); font-weight:900; }
+
+    /* --- Records list --- */
+    .recordsHeader{
+      display:grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr 0.8fr;
+      gap: 10px;
+      align-items:center;
+      font-weight:900;
+      color:#333;
+      padding-bottom: 10px;
+    }
+    .recordRow{
+      display:grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr 0.8fr;
+      gap: 10px;
+      align-items:center;
       padding: 10px 0;
       border-top: 1px solid #eee;
     }
-    .recordHeader {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr 1fr 0.9fr;
-      gap: 10px;
-      align-items: center;
-      font-weight: 800;
-      color: #333;
-      padding-bottom: 10px;
-    }
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border: 1px solid #ddd;
-      border-radius: 999px;
-      font-size: 12px;
-      background: #fafafa;
-      color: #444;
-    }
-    .right { text-align: right; }
-    @media (max-width: 860px) {
-      .row { grid-template-columns: 1fr 1fr; }
-      .row.header { display: none; }
-      .resultGrid { grid-template-columns: 1fr; }
-      .recordHeader { display: none; }
-      .recordRow { grid-template-columns: 1fr 1fr; border-top: 1px solid #eee; padding: 12px 0; }
-      .recordRow > *:nth-child(n+3) { }
+    .right{ text-align:right; }
+
+    .tiny{ font-size:12px; color: var(--muted); margin-top:10px; }
+
+    /* --- Mobile overrides --- */
+    @media (max-width: 720px){
+      body{ padding: 14px; }
+
+      .grid-2, .grid-3, .grid-4{
+        grid-template-columns: 1fr;
+      }
+
+      .resultGrid{
+        grid-template-columns: 1fr;
+      }
+
+      /* Device table -> stacked cards */
+      .deviceHeader{ display:none; }
+      .deviceRow{
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: #fff;
+      }
+      .deviceRow + .deviceRow{ margin-top: 12px; }
+
+      .deviceRow .pair{
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .deviceRow .pair .field label{ margin-bottom: 6px; }
+      .deviceRow .pair.single{ grid-template-columns: 1fr; }
+
+      /* Records -> stacked cards */
+      .recordsHeader{ display:none; }
+      .recordRow{
+        grid-template-columns: 1fr;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px;
+        background:#fff;
+        margin-top: 10px;
+      }
+      .recordRow .row2{
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .recordRow .row2 > div{ min-width:0; }
+      .recordRow .row2 .right{ text-align:left; }
+
+      .actions button{
+        flex: 1 1 auto;
+      }
     }
   </style>
 </head>
@@ -75,60 +242,113 @@
 <body>
   <h1>巨戟アーティア リセット回数カウンター</h1>
   <div class="muted">
-    装置3種（攻撃・会心・属性）の「開始時点（start）」と「現在（now）」を入力し、武器の巨戟性能タイプ（=どれが500ptsか）を選ぶだけです。<br/>
-    ルール：一致した装置は <b>500pts/個</b>、それ以外は <b>250pts/個</b>。リセット回数は <b>総消費pts ÷ 1500</b> の切り捨て。
+    攻撃 / 会心 / 属性 の遺装置について <span class="badge">start</span> と <span class="badge">now</span> を入力し、武器の <b>巨戟性能タイプ</b>（=どれが500pts扱いか）を選択します。<br>
+    ルール：一致した装置は <b>500pts/個</b>、それ以外は <b>250pts/個</b>。リセット回数は <b>総消費pts ÷ 1500</b> の切り捨てです。
   </div>
 
   <div class="card">
-    <div class="row" style="grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;">
-      <div>
-        <label for="weaponType"><b>武器の巨戟性能タイプ（=500ptsになる装置）</b></label>
+    <div class="grid-2">
+      <div class="field">
+        <label for="weaponType">武器の巨戟性能タイプ（=500ptsになる装置）</label>
         <select id="weaponType"></select>
       </div>
-      <div class="muted" style="grid-column: span 4;">
-        ※「武器タイプと一致する装置」を選びます（攻撃/会心/属性のどれか）。
+      <div class="muted" style="align-self:end;">
+        ※「武器タイプと一致する装置」を選びます（攻撃/会心/属性のどれか）
       </div>
     </div>
   </div>
 
-  <div class="card" id="devicesCard">
-    <div class="row header">
-      <div>装置</div>
-      <div>start</div>
-      <div>now</div>
-      <div>消費数</div>
-      <div>pts/個</div>
+  <div class="card">
+    <div class="deviceHeader">
+      <div>装置</div><div>start</div><div>now</div><div>消費数</div><div>pts/個</div>
     </div>
 
-    <div class="row device" data-key="attack">
-      <div><input type="text" class="name" value="攻撃" readonly /></div>
-      <div><input type="number" class="start" value="0" min="0" step="1" /></div>
-      <div><input type="number" class="now" value="0" min="0" step="1" /></div>
-      <div><input type="number" class="use" value="0" readonly /></div>
-      <div><input type="text" class="ppc" value="250" readonly /></div>
+    <!-- 攻撃 -->
+    <div class="deviceRow device" data-idx="0" data-key="attack">
+      <div class="nameFixed">攻撃</div>
+
+      <div class="pair">
+        <div class="field">
+          <label>start</label>
+          <input type="number" class="start" value="0" min="0" step="1" inputmode="numeric" />
+        </div>
+        <div class="field">
+          <label>now</label>
+          <input type="number" class="now" value="0" min="0" step="1" inputmode="numeric" />
+        </div>
+      </div>
+
+      <div class="pair">
+        <div class="field">
+          <label>消費数</label>
+          <input type="number" class="use" value="0" readonly />
+        </div>
+        <div class="field">
+          <label>pts/個</label>
+          <input type="text" class="ppc" value="250" readonly />
+        </div>
+      </div>
     </div>
 
-    <div class="row device" data-key="crit">
-      <div><input type="text" class="name" value="会心" readonly /></div>
-      <div><input type="number" class="start" value="0" min="0" step="1" /></div>
-      <div><input type="number" class="now" value="0" min="0" step="1" /></div>
-      <div><input type="number" class="use" value="0" readonly /></div>
-      <div><input type="text" class="ppc" value="250" readonly /></div>
+    <!-- 会心 -->
+    <div class="deviceRow device" data-idx="1" data-key="crit">
+      <div class="nameFixed">会心</div>
+
+      <div class="pair">
+        <div class="field">
+          <label>start</label>
+          <input type="number" class="start" value="0" min="0" step="1" inputmode="numeric" />
+        </div>
+        <div class="field">
+          <label>now</label>
+          <input type="number" class="now" value="0" min="0" step="1" inputmode="numeric" />
+        </div>
+      </div>
+
+      <div class="pair">
+        <div class="field">
+          <label>消費数</label>
+          <input type="number" class="use" value="0" readonly />
+        </div>
+        <div class="field">
+          <label>pts/個</label>
+          <input type="text" class="ppc" value="250" readonly />
+        </div>
+      </div>
     </div>
 
-    <div class="row device" data-key="elem">
-      <div><input type="text" class="name" value="属性" readonly /></div>
-      <div><input type="number" class="start" value="0" min="0" step="1" /></div>
-      <div><input type="number" class="now" value="0" min="0" step="1" /></div>
-      <div><input type="number" class="use" value="0" readonly /></div>
-      <div><input type="text" class="ppc" value="250" readonly /></div>
+    <!-- 属性 -->
+    <div class="deviceRow device" data-idx="2" data-key="elem">
+      <div class="nameFixed">属性</div>
+
+      <div class="pair">
+        <div class="field">
+          <label>start</label>
+          <input type="number" class="start" value="0" min="0" step="1" inputmode="numeric" />
+        </div>
+        <div class="field">
+          <label>now</label>
+          <input type="number" class="now" value="0" min="0" step="1" inputmode="numeric" />
+        </div>
+      </div>
+
+      <div class="pair">
+        <div class="field">
+          <label>消費数</label>
+          <input type="number" class="use" value="0" readonly />
+        </div>
+        <div class="field">
+          <label>pts/個</label>
+          <input type="text" class="ppc" value="250" readonly />
+        </div>
+      </div>
     </div>
 
-    <div id="warningArea" class="muted" style="margin-top: 10px;"></div>
+    <div id="warningArea" class="statusBox muted"></div>
 
-    <div class="actions" style="margin-top: 12px;">
+    <div class="actions">
       <button id="btnResetInputs" type="button">数値を0に戻す</button>
-      <button id="btnSetNowAsStart" type="button">現在(now)をstartに反映（区切り保存）</button>
+      <button id="btnSetNowAsStart" type="button">現在(now)をstartに反映（区切り）</button>
       <button id="btnCopySummary" type="button">計算結果をコピー</button>
     </div>
   </div>
@@ -148,25 +368,25 @@
         <div class="value" id="remainPts">0</div>
       </div>
     </div>
-    <div class="muted" style="margin-top: 10px;">
+    <div class="muted" style="margin-top:10px;">
       リセット回数 = ⌊総消費pts / 1500⌋、余りpts = 総消費pts mod 1500
     </div>
   </div>
 
   <div class="card">
-    <h2 style="margin:0 0 10px; font-size:16px;">記録（武器名 + リセット回数）</h2>
+    <h2>記録（武器名 + リセット回数）</h2>
 
-    <div class="row" style="grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;">
-      <div>
-        <label for="weaponName"><b>武器名（記録時に入力）</b></label>
+    <div class="grid-2">
+      <div class="field">
+        <label for="weaponName">武器名（記録時に入力）</label>
         <input id="weaponName" type="text" placeholder="例：禁戒のデスヴァンケル" />
       </div>
-      <div class="muted" style="grid-column: span 4;">
-        「記録する」を押すと、この時点の <span class="badge">武器名</span> / <span class="badge">巨戟性能タイプ</span> / <span class="badge">リセット回数</span> / <span class="badge">総消費pts</span> が履歴に保存されます（ページ再読み込みでも残ります）。
+      <div class="muted" style="align-self:end;">
+        「記録する」でこの時点の <span class="badge">巨戟タイプ</span> / <span class="badge">リセット回数</span> / <span class="badge">総消費pts</span> を保存（ブラウザ内）
       </div>
     </div>
 
-    <div class="actions" style="margin-top: 10px;">
+    <div class="actions">
       <button id="btnAddRecord" type="button">記録する</button>
       <button id="btnClearRecords" type="button">記録を全消去</button>
       <button id="btnExportJson" type="button">JSON書き出し</button>
@@ -174,7 +394,7 @@
     </div>
 
     <div id="recordsArea" style="margin-top:12px;">
-      <div class="recordHeader">
+      <div class="recordsHeader">
         <div>武器名（編集可）</div>
         <div>巨戟タイプ</div>
         <div class="right">リセット回数</div>
@@ -186,24 +406,30 @@
     </div>
 
     <div id="jsonPanel" style="display:none; margin-top:12px;">
-      <div class="muted" style="margin-bottom:6px;">
+      <div class="muted" style="margin-bottom:8px;">
         JSONを貼り付けて「読み込み」、または「書き出し」内容をコピーしてバックアップできます。
       </div>
       <textarea id="jsonText"></textarea>
-      <div class="actions" style="margin-top:10px;">
+      <div class="actions">
         <button id="btnDoImport" type="button">このJSONを読み込む</button>
         <button id="btnCloseJson" type="button">閉じる</button>
       </div>
     </div>
 
-    <div class="tiny" style="margin-top:10px;">
-      保存先：このブラウザの localStorage（同じPC/同じブラウザなら残ります。別PCへ移すときはJSONを書き出し/読み込みを使ってください）
+    <div class="tiny">
+      保存先：このブラウザの localStorage（同じ端末・同じブラウザなら残ります。端末移行はJSON書き出し/読み込み）
     </div>
   </div>
 
 <script>
-(function () {
-  const STORAGE_KEY = "gigeki_artia_reset_records_v1";
+(() => {
+  const STORAGE_KEY = "gigeki_artia_reset_records_v2";
+
+  const DEVICES = [
+    { key: "attack", label: "攻撃" },
+    { key: "crit",   label: "会心" },
+    { key: "elem",   label: "属性" },
+  ];
 
   const weaponTypeEl = document.getElementById("weaponType");
   const weaponNameEl = document.getElementById("weaponName");
@@ -217,67 +443,53 @@
   const jsonPanelEl = document.getElementById("jsonPanel");
   const jsonTextEl = document.getElementById("jsonText");
 
-  const deviceRows = Array.from(document.querySelectorAll(".device"));
+  const deviceRows = Array.from(document.querySelectorAll(".deviceRow.device"));
 
-  const DEVICES = [
-    { key: "attack", label: "攻撃" },
-    { key: "crit",   label: "会心" },
-    { key: "elem",   label: "属性" },
-  ];
-
-  function clampInt(v) {
+  function clampInt(v){
     const n = Number(v);
     if (!Number.isFinite(n)) return 0;
     return Math.max(0, Math.floor(n));
   }
 
-  function nowIsoNoSeconds() {
+  function nowIsoNoSeconds(){
     const d = new Date();
-    const pad = (x) => String(x).padStart(2, "0");
+    const pad = (x) => String(x).padStart(2,"0");
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  function rebuildWeaponTypeOptions() {
-    const prevValue = weaponTypeEl.value;
+  function rebuildWeaponTypeOptions(){
+    const prev = weaponTypeEl.value;
     weaponTypeEl.innerHTML = "";
-
     DEVICES.forEach((dev, idx) => {
       const opt = document.createElement("option");
       opt.value = String(idx);
       opt.textContent = `${dev.label} が500pts扱い（巨戟タイプ一致）`;
       weaponTypeEl.appendChild(opt);
     });
-
-    if (prevValue !== "" && weaponTypeEl.querySelector(`option[value="${prevValue}"]`)) {
-      weaponTypeEl.value = prevValue;
-    } else {
-      weaponTypeEl.value = "0";
-    }
+    weaponTypeEl.value = (prev !== "" && weaponTypeEl.querySelector(`option[value="${prev}"]`)) ? prev : "0";
   }
 
-  function getCurrentSnapshot() {
+  function getSnapshot(){
     const weaponIdx = Number(weaponTypeEl.value);
     let totalPts = 0;
-    let warnings = [];
+    const warnings = [];
 
     const perDevice = DEVICES.map((dev, idx) => {
       const row = deviceRows[idx];
       const startEl = row.querySelector(".start");
-      const nowEl = row.querySelector(".now");
+      const nowEl   = row.querySelector(".now");
 
       const start = clampInt(startEl.value);
-      const now = clampInt(nowEl.value);
+      const now   = clampInt(nowEl.value);
 
       if (String(start) !== startEl.value) startEl.value = start;
       if (String(now) !== nowEl.value) nowEl.value = now;
 
       const used = start - now;
-      const ppc = (idx === weaponIdx) ? 500 : 250;
+      const ppc  = (idx === weaponIdx) ? 500 : 250;
       const usedPts = used * ppc;
 
-      if (used < 0) {
-        warnings.push(`「${dev.label}」が start < now です（差分がマイナス）。途中で増えた場合、startを更新して区切ってください。`);
-      }
+      if (used < 0) warnings.push(`「${dev.label}」が start < now です（差分がマイナス）。途中で増えた場合は「現在をstartに反映（区切り）」を使ってください。`);
 
       totalPts += usedPts;
       return { key: dev.key, label: dev.label, start, now, used, ppc, usedPts };
@@ -286,13 +498,20 @@
     const resetCount = Math.floor(totalPts / 1500);
     const remain = ((totalPts % 1500) + 1500) % 1500;
 
-    return { weaponIdx, weaponLabel: DEVICES[weaponIdx].label, perDevice, totalPts, resetCount, remain, warnings };
+    return {
+      weaponIdx,
+      weaponLabel: DEVICES[weaponIdx]?.label ?? "攻撃",
+      perDevice,
+      totalPts,
+      resetCount,
+      remain,
+      warnings,
+    };
   }
 
-  function renderCalc() {
-    const snap = getCurrentSnapshot();
+  function renderCalc(){
+    const snap = getSnapshot();
 
-    // update per-row computed fields
     snap.perDevice.forEach((d, idx) => {
       const row = deviceRows[idx];
       row.querySelector(".use").value = d.used;
@@ -303,65 +522,59 @@
     resetCountEl.textContent = String(snap.resetCount);
     remainPtsEl.textContent = String(snap.remain);
 
-    if (snap.warnings.length) {
-      warningArea.innerHTML =
-        `<div class="warn">⚠ 警告</div><div>${snap.warnings.map(w => "・" + w).join("<br/>")}</div>`;
+    if (snap.warnings.length){
+      warningArea.innerHTML = `<div class="warn">⚠ 警告</div><div>${snap.warnings.map(w => "・" + w).join("<br>")}</div>`;
     } else {
       warningArea.innerHTML = `<div class="ok">OK</div><div>差分はすべて0以上です。</div>`;
     }
   }
 
-  // ===== Records (localStorage) =====
-  function loadRecords() {
-    try {
+  // Records
+  function loadRecords(){
+    try{
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return [];
       const data = JSON.parse(raw);
-      if (!Array.isArray(data)) return [];
-      return data;
-    } catch {
-      return [];
-    }
+      return Array.isArray(data) ? data : [];
+    } catch { return []; }
   }
-
-  function saveRecords(records) {
+  function saveRecords(records){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   }
-
-  function makeId() {
-    // simple unique-ish id
+  function makeId(){
     return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
   }
 
-  function renderRecords() {
+  function renderRecords(){
     const records = loadRecords();
-    if (!records.length) {
-      recordsListEl.innerHTML = `（まだ記録がありません）`;
+    if (!records.length){
+      recordsListEl.textContent = "（まだ記録がありません）";
       return;
     }
-
     recordsListEl.innerHTML = "";
+
     records.forEach((rec) => {
       const row = document.createElement("div");
       row.className = "recordRow";
       row.dataset.id = rec.id;
 
-      // editable weapon name
+      // Weapon name (editable)
       const nameInput = document.createElement("input");
       nameInput.type = "text";
-      nameInput.value = rec.weaponName || "";
+      nameInput.value = rec.weaponName ?? "";
       nameInput.placeholder = "武器名";
       nameInput.addEventListener("input", () => {
         const rs = loadRecords();
         const i = rs.findIndex(r => r.id === rec.id);
-        if (i >= 0) {
+        if (i >= 0){
           rs[i].weaponName = nameInput.value;
           saveRecords(rs);
         }
       });
 
+      // Desktop cells
       const typeDiv = document.createElement("div");
-      typeDiv.textContent = rec.weaponTypeLabel || "";
+      typeDiv.textContent = rec.weaponTypeLabel ?? "";
 
       const resetDiv = document.createElement("div");
       resetDiv.className = "right";
@@ -372,7 +585,7 @@
       ptsDiv.textContent = String(rec.totalPts ?? 0);
 
       const timeDiv = document.createElement("div");
-      timeDiv.textContent = rec.savedAt || "";
+      timeDiv.textContent = rec.savedAt ?? "";
 
       const actionsDiv = document.createElement("div");
       actionsDiv.className = "right";
@@ -386,6 +599,17 @@
       });
       actionsDiv.appendChild(delBtn);
 
+      // For mobile: group numeric fields in 2-col grid (optional)
+      const row2 = document.createElement("div");
+      row2.className = "row2";
+      row2.appendChild(typeDiv);
+      row2.appendChild(resetDiv);
+      const row2b = document.createElement("div");
+      row2b.className = "row2";
+      row2b.appendChild(ptsDiv);
+      row2b.appendChild(timeDiv);
+
+      // We keep DOM simple: on desktop, CSS grid will align; on mobile, it becomes stacked.
       row.appendChild(nameInput);
       row.appendChild(typeDiv);
       row.appendChild(resetDiv);
@@ -397,13 +621,13 @@
     });
   }
 
-  function addRecord() {
-    const snap = getCurrentSnapshot();
+  function addRecord(){
+    const snap = getSnapshot();
     const weaponName = (weaponNameEl.value || "").trim();
 
     const rec = {
       id: makeId(),
-      weaponName: weaponName,
+      weaponName,
       weaponTypeIdx: snap.weaponIdx,
       weaponTypeLabel: snap.weaponLabel,
       resetCount: snap.resetCount,
@@ -417,7 +641,7 @@
     renderRecords();
   }
 
-  // ===== Buttons =====
+  // Buttons
   document.getElementById("btnResetInputs").addEventListener("click", () => {
     deviceRows.forEach(row => {
       row.querySelector(".start").value = 0;
@@ -435,7 +659,7 @@
   });
 
   document.getElementById("btnCopySummary").addEventListener("click", async () => {
-    const snap = getCurrentSnapshot();
+    const snap = getSnapshot();
     const lines = [];
     lines.push(`巨戟アーティア リセット回数カウンター`);
     lines.push(`巨戟タイプ一致（500pts）: ${snap.weaponLabel}`);
@@ -448,10 +672,10 @@
     lines.push(`リセット回数=${snap.resetCount}`);
     lines.push(`余りpts=${snap.remain}`);
 
-    try {
+    try{
       await navigator.clipboard.writeText(lines.join("\n"));
       alert("コピーしました。");
-    } catch {
+    }catch{
       const ta = document.createElement("textarea");
       ta.value = lines.join("\n");
       document.body.appendChild(ta);
@@ -463,9 +687,8 @@
   });
 
   document.getElementById("btnAddRecord").addEventListener("click", () => {
-    // 空でも保存できるが、誤爆防止で軽く注意
     const name = (weaponNameEl.value || "").trim();
-    if (!name) {
+    if (!name){
       const ok = confirm("武器名が空です。このまま記録しますか？");
       if (!ok) return;
     }
@@ -494,10 +717,10 @@
   });
 
   document.getElementById("btnDoImport").addEventListener("click", () => {
-    try {
+    try{
       const data = JSON.parse(jsonTextEl.value || "[]");
       if (!Array.isArray(data)) throw new Error("JSONは配列ではありません。");
-      // very light validation
+
       const cleaned = data.map((r) => ({
         id: String(r.id || makeId()),
         weaponName: String(r.weaponName ?? ""),
@@ -507,10 +730,11 @@
         totalPts: Number.isFinite(Number(r.totalPts)) ? Number(r.totalPts) : 0,
         savedAt: String(r.savedAt ?? ""),
       }));
+
       saveRecords(cleaned);
       renderRecords();
       alert("読み込みました。");
-    } catch (e) {
+    }catch(e){
       alert("JSONの解析に失敗しました：\n" + (e && e.message ? e.message : String(e)));
     }
   });
@@ -519,9 +743,9 @@
     jsonPanelEl.style.display = "none";
   });
 
-  // ===== Listeners =====
+  // Input listeners
   weaponTypeEl.addEventListener("change", renderCalc);
-  deviceRows.forEach((row) => {
+  deviceRows.forEach(row => {
     row.querySelector(".start").addEventListener("input", renderCalc);
     row.querySelector(".now").addEventListener("input", renderCalc);
   });
