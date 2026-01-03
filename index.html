@@ -41,6 +41,7 @@
       margin: 12px 0;
     }
 
+    /* Controls */
     input[type="text"], input[type="number"], select, textarea{
       width:100%;
       padding:10px 12px;
@@ -86,7 +87,7 @@
       display:grid;
       grid-template-columns: 1fr 1fr;
       gap: var(--gap);
-      align-items:start;
+      align-items:end;
     }
 
     .field label{
@@ -97,6 +98,7 @@
       margin: 0 0 6px;
     }
 
+    /* Summary pills */
     .resultGrid{
       display:grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -112,6 +114,7 @@
     .pill .label{ color:var(--muted); font-size:12px; margin-bottom:4px; }
     .pill .value{ font-size: 22px; font-weight: 900; word-break: break-word; }
 
+    /* Device table (PC) */
     .deviceHeader{
       display:grid;
       grid-template-columns: 1.1fr 1fr 1fr 1fr 0.9fr;
@@ -120,16 +123,17 @@
       color:#333;
       margin-bottom: 10px;
     }
-
     .deviceRow{
       display:grid;
       grid-template-columns: 1.1fr 1fr 1fr 1fr 0.9fr;
       gap: 10px;
       align-items:center;
-      margin-top: 10px;
+      padding: 8px 0;
+      border-top: 1px solid #eee;
     }
+    .deviceRow:first-of-type{ border-top: none; }
 
-    .deviceRow .nameFixed{
+    .nameFixed{
       font-weight:900;
       padding: 10px 12px;
       border-radius: 10px;
@@ -138,13 +142,19 @@
       text-align:center;
     }
 
-    .statusBox{
-      margin-top: 12px;
+    .cellLabel{
+      display:none; /* PCでは見せない */
+      font-size:12px;
+      font-weight:900;
+      color:#333;
+      margin-bottom:6px;
     }
+
+    .statusBox{ margin-top: 12px; }
     .warn{ color: var(--danger); font-weight:900; }
     .ok{ color: var(--ok); font-weight:900; }
 
-    /* Records list */
+    /* Records table (PC) */
     .recordsHeader{
       display:grid;
       grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr 0.8fr;
@@ -162,10 +172,8 @@
       padding: 10px 0;
       border-top: 1px solid #eee;
     }
-    .right{ text-align:right; }
-    .tiny{ font-size:12px; color: var(--muted); margin-top:10px; }
 
-    /* Summary table (sorted) */
+    /* Sorted summary table (PC) */
     .sumHeader{
       display:grid;
       grid-template-columns: 2fr 1fr 1fr 0.8fr;
@@ -184,16 +192,16 @@
       border-top: 1px solid #eee;
     }
 
+    .right{ text-align:right; }
+    .tiny{ font-size:12px; color: var(--muted); margin-top:10px; }
+
+    /* Mobile overrides */
     @media (max-width: 720px){
       body{ padding: 14px; }
+      .grid-2{ grid-template-columns: 1fr; }
+      .resultGrid{ grid-template-columns: 1fr; }
 
-      .grid-2{
-        grid-template-columns: 1fr;
-      }
-      .resultGrid{
-        grid-template-columns: 1fr;
-      }
-
+      /* Device -> card */
       .deviceHeader{ display:none; }
       .deviceRow{
         grid-template-columns: 1fr;
@@ -202,15 +210,14 @@
         border: 1px solid var(--border);
         border-radius: var(--radius);
         background: #fff;
+        margin-top: 12px;
       }
-      .deviceRow + .deviceRow{ margin-top: 12px; }
+      .deviceRow:first-of-type{ margin-top: 0; }
 
-      .deviceRow .pair{
-        display:grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-      }
+      .cellLabel{ display:block; }
+      .actions button{ flex: 1 1 auto; }
 
+      /* Records -> card */
       .recordsHeader{ display:none; }
       .recordRow{
         grid-template-columns: 1fr;
@@ -220,7 +227,9 @@
         background:#fff;
         margin-top: 10px;
       }
+      .right{ text-align:left; }
 
+      /* Summary -> card */
       .sumHeader{ display:none; }
       .sumRow{
         grid-template-columns: 1fr;
@@ -229,10 +238,6 @@
         padding: 12px;
         background:#fff;
         margin-top: 10px;
-      }
-
-      .actions button{
-        flex: 1 1 auto;
       }
     }
   </style>
@@ -251,7 +256,7 @@
         <label for="weaponType">武器の巨戟性能タイプ（=500ptsになる装置）</label>
         <select id="weaponType"></select>
       </div>
-      <div class="muted" style="align-self:end;">
+      <div class="muted">
         ※「武器タイプと一致する装置」を選びます（攻撃/会心/属性のどれか）
       </div>
     </div>
@@ -262,84 +267,64 @@
       <div>装置</div><div>start</div><div>now</div><div>消費数</div><div>pts/個</div>
     </div>
 
-    <!-- 攻撃 -->
-    <div class="deviceRow device" data-idx="0" data-key="attack">
+    <!-- Device rows are ALWAYS 5 columns in DOM (PC won't break) -->
+    <div class="deviceRow device" data-idx="0">
       <div class="nameFixed">攻撃</div>
-
-      <div class="pair">
-        <div class="field">
-          <label>start</label>
-          <input type="number" class="start" value="0" min="0" step="1" inputmode="numeric" />
-        </div>
-        <div class="field">
-          <label>now</label>
-          <input type="number" class="now" value="0" min="0" step="1" inputmode="numeric" />
-        </div>
+      <div>
+        <div class="cellLabel">start</div>
+        <input type="number" class="start" value="0" min="0" step="1" inputmode="numeric" />
       </div>
-
-      <div class="pair">
-        <div class="field">
-          <label>消費数</label>
-          <input type="number" class="use" value="0" readonly />
-        </div>
-        <div class="field">
-          <label>pts/個</label>
-          <input type="text" class="ppc" value="250" readonly />
-        </div>
+      <div>
+        <div class="cellLabel">now</div>
+        <input type="number" class="now" value="0" min="0" step="1" inputmode="numeric" />
+      </div>
+      <div>
+        <div class="cellLabel">消費数</div>
+        <input type="number" class="use" value="0" readonly />
+      </div>
+      <div>
+        <div class="cellLabel">pts/個</div>
+        <input type="text" class="ppc" value="250" readonly />
       </div>
     </div>
 
-    <!-- 会心 -->
-    <div class="deviceRow device" data-idx="1" data-key="crit">
+    <div class="deviceRow device" data-idx="1">
       <div class="nameFixed">会心</div>
-
-      <div class="pair">
-        <div class="field">
-          <label>start</label>
-          <input type="number" class="start" value="0" min="0" step="1" inputmode="numeric" />
-        </div>
-        <div class="field">
-          <label>now</label>
-          <input type="number" class="now" value="0" min="0" step="1" inputmode="numeric" />
-        </div>
+      <div>
+        <div class="cellLabel">start</div>
+        <input type="number" class="start" value="0" min="0" step="1" inputmode="numeric" />
       </div>
-
-      <div class="pair">
-        <div class="field">
-          <label>消費数</label>
-          <input type="number" class="use" value="0" readonly />
-        </div>
-        <div class="field">
-          <label>pts/個</label>
-          <input type="text" class="ppc" value="250" readonly />
-        </div>
+      <div>
+        <div class="cellLabel">now</div>
+        <input type="number" class="now" value="0" min="0" step="1" inputmode="numeric" />
+      </div>
+      <div>
+        <div class="cellLabel">消費数</div>
+        <input type="number" class="use" value="0" readonly />
+      </div>
+      <div>
+        <div class="cellLabel">pts/個</div>
+        <input type="text" class="ppc" value="250" readonly />
       </div>
     </div>
 
-    <!-- 属性 -->
-    <div class="deviceRow device" data-idx="2" data-key="elem">
+    <div class="deviceRow device" data-idx="2">
       <div class="nameFixed">属性</div>
-
-      <div class="pair">
-        <div class="field">
-          <label>start</label>
-          <input type="number" class="start" value="0" min="0" step="1" inputmode="numeric" />
-        </div>
-        <div class="field">
-          <label>now</label>
-          <input type="number" class="now" value="0" min="0" step="1" inputmode="numeric" />
-        </div>
+      <div>
+        <div class="cellLabel">start</div>
+        <input type="number" class="start" value="0" min="0" step="1" inputmode="numeric" />
       </div>
-
-      <div class="pair">
-        <div class="field">
-          <label>消費数</label>
-          <input type="number" class="use" value="0" readonly />
-        </div>
-        <div class="field">
-          <label>pts/個</label>
-          <input type="text" class="ppc" value="250" readonly />
-        </div>
+      <div>
+        <div class="cellLabel">now</div>
+        <input type="number" class="now" value="0" min="0" step="1" inputmode="numeric" />
+      </div>
+      <div>
+        <div class="cellLabel">消費数</div>
+        <input type="number" class="use" value="0" readonly />
+      </div>
+      <div>
+        <div class="cellLabel">pts/個</div>
+        <input type="text" class="ppc" value="250" readonly />
       </div>
     </div>
 
@@ -348,7 +333,7 @@
     <div class="actions">
       <button id="btnResetInputs" type="button">数値を0に戻す</button>
       <button id="btnSetNowAsStart" type="button">現在(now)をstartに反映（区切り）</button>
-      <button id="btnCopySummary" type="button">計算結果をコピー</button>
+      <button id="btnCopyCalc" type="button">計算結果をコピー</button>
     </div>
   </div>
 
@@ -380,7 +365,7 @@
         <label for="weaponName">武器名（記録時に入力）</label>
         <input id="weaponName" type="text" placeholder="例：武器A" />
       </div>
-      <div class="muted" style="align-self:end;">
+      <div class="muted">
         「記録する」でこの時点の <span class="badge">巨戟タイプ</span> / <span class="badge">リセット回数</span> / <span class="badge">総消費pts</span> を保存（ブラウザ内）
       </div>
     </div>
@@ -420,17 +405,16 @@
     </div>
   </div>
 
-  <!-- NEW: Summary table -->
   <div class="card">
     <h2>武器別リセット回数（昇順）</h2>
     <div class="muted">
-      記録した履歴から、<b>武器名ごとに最大リセット回数</b>を抽出し、少ない順に並べて表示します。
+      記録した履歴から、<b>武器名ごとに最大リセット回数</b>を抽出し、少ない順に並べて表示します。<br>
       （同じ武器名で複数回記録した場合、最大値を採用）
     </div>
 
     <div class="actions">
       <button id="btnBuildSummary" type="button">表を更新</button>
-      <button id="btnCopySummaryTable" type="button">表をコピー</button>
+      <button id="btnCopySummaryLine" type="button">「武器A(3回) → ...」をコピー</button>
     </div>
 
     <div id="summaryArea" style="margin-top:12px;">
@@ -443,19 +427,17 @@
       <div id="summaryList" class="muted">（まだ記録がありません）</div>
     </div>
 
-    <div class="tiny">
-      例：武器A（3回） → 武器B（10回） → 武器C（23回）
-    </div>
+    <div class="tiny">例：武器A（3回） → 武器B（10回） → 武器C（23回）</div>
   </div>
 
 <script>
 (() => {
-  const STORAGE_KEY = "gigeki_artia_reset_records_v3";
+  const STORAGE_KEY = "gigeki_artia_reset_records_v4";
 
   const DEVICES = [
-    { key: "attack", label: "攻撃" },
-    { key: "crit",   label: "会心" },
-    { key: "elem",   label: "属性" },
+    { label: "攻撃" },
+    { label: "会心" },
+    { label: "属性" },
   ];
 
   const weaponTypeEl = document.getElementById("weaponType");
@@ -521,7 +503,7 @@
       if (used < 0) warnings.push(`「${dev.label}」が start < now です（差分がマイナス）。途中で増えた場合は「現在をstartに反映（区切り）」を使ってください。`);
 
       totalPts += usedPts;
-      return { key: dev.key, label: dev.label, start, now, used, ppc, usedPts };
+      return { label: dev.label, start, now, used, ppc, usedPts };
     });
 
     const resetCount = Math.floor(totalPts / 1500);
@@ -558,7 +540,7 @@
     }
   }
 
-  // Records
+  // Records storage
   function loadRecords(){
     try{
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -661,16 +643,14 @@
     renderSummary();
   }
 
-  // ===== NEW: Summary (weapon name -> max resetCount) sorted ascending =====
+  // Summary (weapon name -> max resetCount) sorted ascending
   function computeSummary(){
     const records = loadRecords();
-
-    // Map weaponName -> {weaponName, maxResetCount, weaponTypeLabelAtMax}
     const map = new Map();
 
     for (const r of records){
       const name = (r.weaponName || "").trim();
-      if (!name) continue; // ignore empty names in summary
+      if (!name) continue;
       const rc = Number.isFinite(Number(r.resetCount)) ? Number(r.resetCount) : 0;
       const typeLabel = r.weaponTypeLabel || "";
 
@@ -680,10 +660,8 @@
       }
     }
 
-    // Turn into array and sort by resetCount asc, then name asc
     const arr = Array.from(map.values());
     arr.sort((a,b) => (a.resetCount - b.resetCount) || a.weaponName.localeCompare(b.weaponName, "ja"));
-
     return arr;
   }
 
@@ -740,14 +718,25 @@
     });
   }
 
-  function copyWholeSummaryLine(){
+  function buildSummaryLine(){
     const summary = computeSummary();
-    if (!summary.length){
-      alert("集計できるデータがありません（武器名が空の記録は除外されます）。");
-      return;
+    if (!summary.length) return "";
+    return summary.map(x => `${x.weaponName}（${x.resetCount}回）`).join(" → ");
+  }
+
+  async function copyText(txt){
+    try{
+      await navigator.clipboard.writeText(txt);
+      alert("コピーしました。");
+    }catch{
+      const ta = document.createElement("textarea");
+      ta.value = txt;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      alert("コピーしました（互換モード）。");
     }
-    const line = summary.map(x => `${x.weaponName}（${x.resetCount}回）`).join(" → ");
-    return line;
   }
 
   // Buttons
@@ -767,7 +756,7 @@
     renderCalc();
   });
 
-  document.getElementById("btnCopySummary").addEventListener("click", async () => {
+  document.getElementById("btnCopyCalc").addEventListener("click", () => {
     const snap = getSnapshot();
     const lines = [];
     lines.push(`巨戟アーティア リセット回数カウンター`);
@@ -780,19 +769,7 @@
     lines.push(`総消費pts=${snap.totalPts}`);
     lines.push(`リセット回数=${snap.resetCount}`);
     lines.push(`余りpts=${snap.remain}`);
-
-    try{
-      await navigator.clipboard.writeText(lines.join("\n"));
-      alert("コピーしました。");
-    }catch{
-      const ta = document.createElement("textarea");
-      ta.value = lines.join("\n");
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      alert("コピーしました（互換モード）。");
-    }
+    copyText(lines.join("\n"));
   });
 
   document.getElementById("btnAddRecord").addEventListener("click", () => {
@@ -854,31 +831,18 @@
     jsonPanelEl.style.display = "none";
   });
 
-  // NEW summary buttons
   document.getElementById("btnBuildSummary").addEventListener("click", () => {
     renderSummary();
     alert("表を更新しました。");
   });
 
-  document.getElementById("btnCopySummaryTable").addEventListener("click", async () => {
-    const line = copyWholeSummaryLine();
-    if (!line) return;
-
-    try{
-      await navigator.clipboard.writeText(line);
-      alert("コピーしました。\n" + line);
-    }catch{
-      const ta = document.createElement("textarea");
-      ta.value = line;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      alert("コピーしました（互換モード）。\n" + line);
-    }
+  document.getElementById("btnCopySummaryLine").addEventListener("click", () => {
+    const line = buildSummaryLine();
+    if (!line) return alert("集計できるデータがありません（武器名が空の記録は除外されます）。");
+    copyText(line);
   });
 
-  // Input listeners
+  // Live calc events
   weaponTypeEl.addEventListener("change", renderCalc);
   deviceRows.forEach(row => {
     row.querySelector(".start").addEventListener("input", renderCalc);
