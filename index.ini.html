@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>巨戟アーティア リセット回数カウンター</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", sans-serif; }
+    body { margin: 18px; max-width: 980px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; margin: 12px 0; }
+    .muted { color: #666; font-size: 13px; line-height: 1.45; }
+    .row { display: grid; grid-template-columns: 1.2fr 0.8fr 0.8fr 0.8fr 0.8fr; gap: 10px; align-items: center; }
+    .row.header { font-weight: 700; color: #333; }
+    .row + .row { margin-top: 8px; }
+    input[type="number"], input[type="text"], select, textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px;
+      box-sizing: border-box;
+    }
+    textarea { min-height: 90px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .resultGrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .pill {
+      border: 1px solid #ddd; border-radius: 10px; padding: 12px;
+      background: #fafafa;
+    }
+    .pill .label { color: #666; font-size: 12px; margin-bottom: 4px; }
+    .pill .value { font-size: 20px; font-weight: 800; }
+    .warn { color: #b00020; font-weight: 700; }
+    .ok { color: #0a7a2f; font-weight: 700; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    button {
+      padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc;
+      background: white; cursor: pointer; font-weight: 700;
+    }
+    button:hover { background: #f5f5f5; }
+    .tiny { font-size: 12px; color: #666; }
+    .recordRow {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1fr 0.9fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 0;
+      border-top: 1px solid #eee;
+    }
+    .recordHeader {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1fr 0.9fr;
+      gap: 10px;
+      align-items: center;
+      font-weight: 800;
+      color: #333;
+      padding-bottom: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border: 1px solid #ddd;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #fafafa;
+      color: #444;
+    }
+    .right { text-align: right; }
+    @media (max-width: 860px) {
+      .row { grid-template-columns: 1fr 1fr; }
+      .row.header { display: none; }
+      .resultGrid { grid-template-columns: 1fr; }
+      .recordHeader { display: none; }
+      .recordRow { grid-template-columns: 1fr 1fr; border-top: 1px solid #eee; padding: 12px 0; }
+      .recordRow > *:nth-child(n+3) { }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>巨戟アーティア リセット回数カウンター</h1>
+  <div class="muted">
+    装置3種（攻撃・会心・属性）の「開始時点（start）」と「現在（now）」を入力し、武器の巨戟性能タイプ（=どれが500ptsか）を選ぶだけです。<br/>
+    ルール：一致した装置は <b>500pts/個</b>、それ以外は <b>250pts/個</b>。リセット回数は <b>総消費pts ÷ 1500</b> の切り捨て。
+  </div>
+
+  <div class="card">
+    <div class="row" style="grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;">
+      <div>
+        <label for="weaponType"><b>武器の巨戟性能タイプ（=500ptsになる装置）</b></label>
+        <select id="weaponType"></select>
+      </div>
+      <div class="muted" style="grid-column: span 4;">
+        ※「武器タイプと一致する装置」を選びます（攻撃/会心/属性のどれか）。
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="devicesCard">
+    <div class="row header">
+      <div>装置</div>
+      <div>start</div>
+      <div>now</div>
+      <div>消費数</div>
+      <div>pts/個</div>
+    </div>
+
+    <div class="row device" data-key="attack">
+      <div><input type="text" class="name" value="攻撃" readonly /></div>
+      <div><input type="number" class="start" value="0" min="0" step="1" /></div>
+      <div><input type="number" class="now" value="0" min="0" step="1" /></div>
+      <div><input type="number" class="use" value="0" readonly /></div>
+      <div><input type="text" class="ppc" value="250" readonly /></div>
+    </div>
+
+    <div class="row device" data-key="crit">
+      <div><input type="text" class="name" value="会心" readonly /></div>
+      <div><input type="number" class="start" value="0" min="0" step="1" /></div>
+      <div><input type="number" class="now" value="0" min="0" step="1" /></div>
+      <div><input type="number" class="use" value="0" readonly /></div>
+      <div><input type="text" class="ppc" value="250" readonly /></div>
+    </div>
+
+    <div class="row device" data-key="elem">
+      <div><input type="text" class="name" value="属性" readonly /></div>
+      <div><input type="number" class="start" value="0" min="0" step="1" /></div>
+      <div><input type="number" class="now" value="0" min="0" step="1" /></div>
+      <div><input type="number" class="use" value="0" readonly /></div>
+      <div><input type="text" class="ppc" value="250" readonly /></div>
+    </div>
+
+    <div id="warningArea" class="muted" style="margin-top: 10px;"></div>
+
+    <div class="actions" style="margin-top: 12px;">
+      <button id="btnResetInputs" type="button">数値を0に戻す</button>
+      <button id="btnSetNowAsStart" type="button">現在(now)をstartに反映（区切り保存）</button>
+      <button id="btnCopySummary" type="button">計算結果をコピー</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="resultGrid">
+      <div class="pill">
+        <div class="label">総消費pts</div>
+        <div class="value" id="totalPts">0</div>
+      </div>
+      <div class="pill">
+        <div class="label">リセット回数（1500ptsごと）</div>
+        <div class="value" id="resetCount">0</div>
+      </div>
+      <div class="pill">
+        <div class="label">余りpts（次のリセットまで）</div>
+        <div class="value" id="remainPts">0</div>
+      </div>
+    </div>
+    <div class="muted" style="margin-top: 10px;">
+      リセット回数 = ⌊総消費pts / 1500⌋、余りpts = 総消費pts mod 1500
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 10px; font-size:16px;">記録（武器名 + リセット回数）</h2>
+
+    <div class="row" style="grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;">
+      <div>
+        <label for="weaponName"><b>武器名（記録時に入力）</b></label>
+        <input id="weaponName" type="text" placeholder="例：禁戒のデスヴァンケル" />
+      </div>
+      <div class="muted" style="grid-column: span 4;">
+        「記録する」を押すと、この時点の <span class="badge">武器名</span> / <span class="badge">巨戟性能タイプ</span> / <span class="badge">リセット回数</span> / <span class="badge">総消費pts</span> が履歴に保存されます（ページ再読み込みでも残ります）。
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top: 10px;">
+      <button id="btnAddRecord" type="button">記録する</button>
+      <button id="btnClearRecords" type="button">記録を全消去</button>
+      <button id="btnExportJson" type="button">JSON書き出し</button>
+      <button id="btnImportJson" type="button">JSON読み込み</button>
+    </div>
+
+    <div id="recordsArea" style="margin-top:12px;">
+      <div class="recordHeader">
+        <div>武器名（編集可）</div>
+        <div>巨戟タイプ</div>
+        <div class="right">リセット回数</div>
+        <div class="right">総消費pts</div>
+        <div>日時</div>
+        <div class="right">操作</div>
+      </div>
+      <div id="recordsList" class="muted">（まだ記録がありません）</div>
+    </div>
+
+    <div id="jsonPanel" style="display:none; margin-top:12px;">
+      <div class="muted" style="margin-bottom:6px;">
+        JSONを貼り付けて「読み込み」、または「書き出し」内容をコピーしてバックアップできます。
+      </div>
+      <textarea id="jsonText"></textarea>
+      <div class="actions" style="margin-top:10px;">
+        <button id="btnDoImport" type="button">このJSONを読み込む</button>
+        <button id="btnCloseJson" type="button">閉じる</button>
+      </div>
+    </div>
+
+    <div class="tiny" style="margin-top:10px;">
+      保存先：このブラウザの localStorage（同じPC/同じブラウザなら残ります。別PCへ移すときはJSONを書き出し/読み込みを使ってください）
+    </div>
+  </div>
+
+<script>
+(function () {
+  const STORAGE_KEY = "gigeki_artia_reset_records_v1";
+
+  const weaponTypeEl = document.getElementById("weaponType");
+  const weaponNameEl = document.getElementById("weaponName");
+
+  const warningArea = document.getElementById("warningArea");
+  const totalPtsEl = document.getElementById("totalPts");
+  const resetCountEl = document.getElementById("resetCount");
+  const remainPtsEl = document.getElementById("remainPts");
+
+  const recordsListEl = document.getElementById("recordsList");
+  const jsonPanelEl = document.getElementById("jsonPanel");
+  const jsonTextEl = document.getElementById("jsonText");
+
+  const deviceRows = Array.from(document.querySelectorAll(".device"));
+
+  const DEVICES = [
+    { key: "attack", label: "攻撃" },
+    { key: "crit",   label: "会心" },
+    { key: "elem",   label: "属性" },
+  ];
+
+  function clampInt(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.floor(n));
+  }
+
+  function nowIsoNoSeconds() {
+    const d = new Date();
+    const pad = (x) => String(x).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function rebuildWeaponTypeOptions() {
+    const prevValue = weaponTypeEl.value;
+    weaponTypeEl.innerHTML = "";
+
+    DEVICES.forEach((dev, idx) => {
+      const opt = document.createElement("option");
+      opt.value = String(idx);
+      opt.textContent = `${dev.label} が500pts扱い（巨戟タイプ一致）`;
+      weaponTypeEl.appendChild(opt);
+    });
+
+    if (prevValue !== "" && weaponTypeEl.querySelector(`option[value="${prevValue}"]`)) {
+      weaponTypeEl.value = prevValue;
+    } else {
+      weaponTypeEl.value = "0";
+    }
+  }
+
+  function getCurrentSnapshot() {
+    const weaponIdx = Number(weaponTypeEl.value);
+    let totalPts = 0;
+    let warnings = [];
+
+    const perDevice = DEVICES.map((dev, idx) => {
+      const row = deviceRows[idx];
+      const startEl = row.querySelector(".start");
+      const nowEl = row.querySelector(".now");
+
+      const start = clampInt(startEl.value);
+      const now = clampInt(nowEl.value);
+
+      if (String(start) !== startEl.value) startEl.value = start;
+      if (String(now) !== nowEl.value) nowEl.value = now;
+
+      const used = start - now;
+      const ppc = (idx === weaponIdx) ? 500 : 250;
+      const usedPts = used * ppc;
+
+      if (used < 0) {
+        warnings.push(`「${dev.label}」が start < now です（差分がマイナス）。途中で増えた場合、startを更新して区切ってください。`);
+      }
+
+      totalPts += usedPts;
+      return { key: dev.key, label: dev.label, start, now, used, ppc, usedPts };
+    });
+
+    const resetCount = Math.floor(totalPts / 1500);
+    const remain = ((totalPts % 1500) + 1500) % 1500;
+
+    return { weaponIdx, weaponLabel: DEVICES[weaponIdx].label, perDevice, totalPts, resetCount, remain, warnings };
+  }
+
+  function renderCalc() {
+    const snap = getCurrentSnapshot();
+
+    // update per-row computed fields
+    snap.perDevice.forEach((d, idx) => {
+      const row = deviceRows[idx];
+      row.querySelector(".use").value = d.used;
+      row.querySelector(".ppc").value = d.ppc;
+    });
+
+    totalPtsEl.textContent = String(snap.totalPts);
+    resetCountEl.textContent = String(snap.resetCount);
+    remainPtsEl.textContent = String(snap.remain);
+
+    if (snap.warnings.length) {
+      warningArea.innerHTML =
+        `<div class="warn">⚠ 警告</div><div>${snap.warnings.map(w => "・" + w).join("<br/>")}</div>`;
+    } else {
+      warningArea.innerHTML = `<div class="ok">OK</div><div>差分はすべて0以上です。</div>`;
+    }
+  }
+
+  // ===== Records (localStorage) =====
+  function loadRecords() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const data = JSON.parse(raw);
+      if (!Array.isArray(data)) return [];
+      return data;
+    } catch {
+      return [];
+    }
+  }
+
+  function saveRecords(records) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  }
+
+  function makeId() {
+    // simple unique-ish id
+    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }
+
+  function renderRecords() {
+    const records = loadRecords();
+    if (!records.length) {
+      recordsListEl.innerHTML = `（まだ記録がありません）`;
+      return;
+    }
+
+    recordsListEl.innerHTML = "";
+    records.forEach((rec) => {
+      const row = document.createElement("div");
+      row.className = "recordRow";
+      row.dataset.id = rec.id;
+
+      // editable weapon name
+      const nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.value = rec.weaponName || "";
+      nameInput.placeholder = "武器名";
+      nameInput.addEventListener("input", () => {
+        const rs = loadRecords();
+        const i = rs.findIndex(r => r.id === rec.id);
+        if (i >= 0) {
+          rs[i].weaponName = nameInput.value;
+          saveRecords(rs);
+        }
+      });
+
+      const typeDiv = document.createElement("div");
+      typeDiv.textContent = rec.weaponTypeLabel || "";
+
+      const resetDiv = document.createElement("div");
+      resetDiv.className = "right";
+      resetDiv.textContent = String(rec.resetCount ?? 0);
+
+      const ptsDiv = document.createElement("div");
+      ptsDiv.className = "right";
+      ptsDiv.textContent = String(rec.totalPts ?? 0);
+
+      const timeDiv = document.createElement("div");
+      timeDiv.textContent = rec.savedAt || "";
+
+      const actionsDiv = document.createElement("div");
+      actionsDiv.className = "right";
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.textContent = "削除";
+      delBtn.addEventListener("click", () => {
+        const rs = loadRecords().filter(r => r.id !== rec.id);
+        saveRecords(rs);
+        renderRecords();
+      });
+      actionsDiv.appendChild(delBtn);
+
+      row.appendChild(nameInput);
+      row.appendChild(typeDiv);
+      row.appendChild(resetDiv);
+      row.appendChild(ptsDiv);
+      row.appendChild(timeDiv);
+      row.appendChild(actionsDiv);
+
+      recordsListEl.appendChild(row);
+    });
+  }
+
+  function addRecord() {
+    const snap = getCurrentSnapshot();
+    const weaponName = (weaponNameEl.value || "").trim();
+
+    const rec = {
+      id: makeId(),
+      weaponName: weaponName,
+      weaponTypeIdx: snap.weaponIdx,
+      weaponTypeLabel: snap.weaponLabel,
+      resetCount: snap.resetCount,
+      totalPts: snap.totalPts,
+      savedAt: nowIsoNoSeconds(),
+    };
+
+    const records = loadRecords();
+    records.unshift(rec);
+    saveRecords(records);
+    renderRecords();
+  }
+
+  // ===== Buttons =====
+  document.getElementById("btnResetInputs").addEventListener("click", () => {
+    deviceRows.forEach(row => {
+      row.querySelector(".start").value = 0;
+      row.querySelector(".now").value = 0;
+    });
+    renderCalc();
+  });
+
+  document.getElementById("btnSetNowAsStart").addEventListener("click", () => {
+    deviceRows.forEach(row => {
+      const now = clampInt(row.querySelector(".now").value);
+      row.querySelector(".start").value = now;
+    });
+    renderCalc();
+  });
+
+  document.getElementById("btnCopySummary").addEventListener("click", async () => {
+    const snap = getCurrentSnapshot();
+    const lines = [];
+    lines.push(`巨戟アーティア リセット回数カウンター`);
+    lines.push(`巨戟タイプ一致（500pts）: ${snap.weaponLabel}`);
+    lines.push(`---`);
+    snap.perDevice.forEach(d => {
+      lines.push(`${d.label}: start=${d.start}, now=${d.now}, 消費=${d.used}, pts/個=${d.ppc}, 消費pts=${d.usedPts}`);
+    });
+    lines.push(`---`);
+    lines.push(`総消費pts=${snap.totalPts}`);
+    lines.push(`リセット回数=${snap.resetCount}`);
+    lines.push(`余りpts=${snap.remain}`);
+
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      alert("コピーしました。");
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = lines.join("\n");
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      alert("コピーしました（互換モード）。");
+    }
+  });
+
+  document.getElementById("btnAddRecord").addEventListener("click", () => {
+    // 空でも保存できるが、誤爆防止で軽く注意
+    const name = (weaponNameEl.value || "").trim();
+    if (!name) {
+      const ok = confirm("武器名が空です。このまま記録しますか？");
+      if (!ok) return;
+    }
+    addRecord();
+  });
+
+  document.getElementById("btnClearRecords").addEventListener("click", () => {
+    const ok = confirm("記録をすべて削除します。よろしいですか？");
+    if (!ok) return;
+    localStorage.removeItem(STORAGE_KEY);
+    renderRecords();
+  });
+
+  document.getElementById("btnExportJson").addEventListener("click", () => {
+    const records = loadRecords();
+    jsonTextEl.value = JSON.stringify(records, null, 2);
+    jsonPanelEl.style.display = "block";
+    jsonTextEl.focus();
+    jsonTextEl.select();
+  });
+
+  document.getElementById("btnImportJson").addEventListener("click", () => {
+    jsonTextEl.value = "";
+    jsonPanelEl.style.display = "block";
+    jsonTextEl.focus();
+  });
+
+  document.getElementById("btnDoImport").addEventListener("click", () => {
+    try {
+      const data = JSON.parse(jsonTextEl.value || "[]");
+      if (!Array.isArray(data)) throw new Error("JSONは配列ではありません。");
+      // very light validation
+      const cleaned = data.map((r) => ({
+        id: String(r.id || makeId()),
+        weaponName: String(r.weaponName ?? ""),
+        weaponTypeIdx: Number.isFinite(Number(r.weaponTypeIdx)) ? Number(r.weaponTypeIdx) : 0,
+        weaponTypeLabel: String(r.weaponTypeLabel ?? ""),
+        resetCount: Number.isFinite(Number(r.resetCount)) ? Number(r.resetCount) : 0,
+        totalPts: Number.isFinite(Number(r.totalPts)) ? Number(r.totalPts) : 0,
+        savedAt: String(r.savedAt ?? ""),
+      }));
+      saveRecords(cleaned);
+      renderRecords();
+      alert("読み込みました。");
+    } catch (e) {
+      alert("JSONの解析に失敗しました：\n" + (e && e.message ? e.message : String(e)));
+    }
+  });
+
+  document.getElementById("btnCloseJson").addEventListener("click", () => {
+    jsonPanelEl.style.display = "none";
+  });
+
+  // ===== Listeners =====
+  weaponTypeEl.addEventListener("change", renderCalc);
+  deviceRows.forEach((row) => {
+    row.querySelector(".start").addEventListener("input", renderCalc);
+    row.querySelector(".now").addEventListener("input", renderCalc);
+  });
+
+  // Init
+  rebuildWeaponTypeOptions();
+  renderCalc();
+  renderRecords();
+})();
+</script>
+</body>
+</html>
